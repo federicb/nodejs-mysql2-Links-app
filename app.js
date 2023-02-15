@@ -3,7 +3,11 @@ const express = require('express');
 const path = require('path');
 const cookieParser = require('cookie-parser');
 const logger = require('morgan');
-const { engine } = require('express-handlebars')
+const { engine } = require('express-handlebars');
+const flash = require('connect-flash');
+const session = require('express-session');
+const smysql = require('express-mysql-session');
+const { database } = require('./keys');
 
 const indexRouter = require('./routes/index');
 const linksRouter = require('./routes/links');
@@ -19,10 +23,17 @@ app.engine('.hbs', engine({
   partialsDir: path.join(app.get('views'), 'partials'),
   extname: '.hbs',
   helpers: require('./lib/handlebars')
-}))
+}));
 app.set('view engine', '.hbs');
 
 //Middlewares
+app.use(session({
+  secret: 'potatoes',
+  resave: false,
+  saveUninitialized: false,
+  store: new smysql(database) // mysql session necesaria para flash
+})); //se utiliza para realizar sesiones que nos sirven para flash
+app.use(flash()); //se utiliza para dar avisos (flash funciona con sesiones)
 app.use(logger('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
@@ -30,7 +41,7 @@ app.use(cookieParser());
 
 //Gobal Variables
 app.use((req, res, next) => {
-
+  app.locals.success = req.flash('success') 
   next()
 
 })
